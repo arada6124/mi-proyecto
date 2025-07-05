@@ -1,0 +1,1864 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#0D47A1">
+
+    <title>🏥 Sistema Avanzado de Expediente Oftalmológico</title>
+
+    <!-- CDN Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+
+    <style>
+        /* CSS Variables para personalización */
+        :root {
+            --primary-color: #0D47A1;
+            --primary-light: #5472D3;
+            --primary-dark: #002171;
+            --secondary-color: #FF5722;
+            --accent-color: #4CAF50;
+            --warning-color: #FF9800;
+            --error-color: #F44336;
+            --success-color: #4CAF50;
+            --surface-color: #FFFFFF;
+            --background-color: #F5F5F5;
+            --text-primary: #212121;
+            --text-secondary: #757575;
+            --border-color: #E0E0E0;
+            --shadow-light: 0 2px 4px rgba(0,0,0,0.1);
+            --shadow-medium: 0 4px 8px rgba(0,0,0,0.15);
+            --shadow-heavy: 0 8px 16px rgba(0,0,0,0.2);
+            --border-radius: 12px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Dark theme variables */
+        [data-theme="dark"] {
+            --primary-color: #2196F3;
+            --surface-color: #1E1E1E;
+            --background-color: #121212;
+            --text-primary: #FFFFFF;
+            --text-secondary: #B0B0B0;
+            --border-color: #333333;
+        }
+
+        /* Reset y base styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            min-height: 100vh;
+            color: var(--text-primary);
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        /* Contenedor principal mejorado */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: var(--surface-color);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-heavy);
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Header rediseñado */
+        .header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 1.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+            opacity: 0.3;
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .clinic-info h1 {
+            font-size: clamp(1.2rem, 4vw, 1.8rem);
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .clinic-subtitle {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        /* Controles del header */
+        .header-controls {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .header-btn {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: var(--transition);
+            backdrop-filter: blur(10px);
+        }
+
+        .header-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+
+        /* Barra de progreso */
+        .progress-container {
+            background: rgba(255,255,255,0.1);
+            height: 4px;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 1rem;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-color), var(--success-color));
+            border-radius: 2px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        /* Sistema de pestañas mejorado */
+        .tabs-container {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: var(--surface-color);
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: var(--shadow-light);
+        }
+
+        .tabs {
+            display: flex;
+            overflow-x: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .tabs::-webkit-scrollbar {
+            display: none;
+        }
+
+        .tab {
+            flex: none;
+            min-width: 140px;
+            padding: 1rem;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            position: relative;
+            transition: var(--transition);
+            white-space: nowrap;
+            text-align: center;
+        }
+
+        .tab:hover {
+            background: rgba(13, 71, 161, 0.05);
+            color: var(--primary-color);
+        }
+
+        .tab.active {
+            color: var(--primary-color);
+            background: rgba(13, 71, 161, 0.1);
+        }
+
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60%;
+            height: 3px;
+            background: var(--primary-color);
+            border-radius: 3px 3px 0 0;
+        }
+
+        /* Contenido principal */
+        .content {
+            padding: 2rem 1rem;
+            min-height: 500px;
+        }
+
+        .section {
+            display: none;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+
+        .section.active {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Sistema de formularios mejorado */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .form-group {
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            transition: var(--transition);
+            position: relative;
+        }
+
+        .form-group:hover {
+            border-color: var(--primary-color);
+            box-shadow: var(--shadow-medium);
+        }
+
+        .form-group h3 {
+            color: var(--primary-color);
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .input-group {
+            position: relative;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .required::after {
+            content: ' *';
+            color: var(--error-color);
+        }
+
+        /* Inputs rediseñados */
+        input, select, textarea {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: var(--transition);
+            background: var(--surface-color);
+            color: var(--text-primary);
+            min-height: 48px;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(13, 71, 161, 0.1);
+        }
+
+        /* Diagramas oculares mejorados */
+        .eye-examination {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+
+        .eye-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            text-align: center;
+            border: 2px solid var(--border-color);
+            transition: var(--transition);
+        }
+
+        .eye-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-medium);
+        }
+
+        .eye-card h4 {
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+        }
+
+        .eye-visual {
+            width: 120px;
+            height: 80px;
+            margin: 0 auto 1rem;
+            background: radial-gradient(ellipse, #4a90e2 30%, var(--primary-color) 70%);
+            border-radius: 50%;
+            position: relative;
+            box-shadow: var(--shadow-medium);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .eye-visual:hover {
+            transform: scale(1.05);
+        }
+
+        .eye-visual::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+            background: #1a1a1a;
+            border-radius: 50%;
+            box-shadow: inset 0 2px 8px rgba(255,255,255,0.3);
+        }
+
+        /* Calculadoras médicas */
+        .medical-calculator {
+            background: linear-gradient(135deg, var(--accent-color), var(--success-color));
+            color: white;
+            padding: 1.5rem;
+            border-radius: var(--border-radius);
+            margin: 1rem 0;
+        }
+
+        .calculator-result {
+            background: rgba(255,255,255,0.2);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            font-weight: 600;
+        }
+
+        /* Botones de acción flotantes mejorados */
+        .fab-container {
+            position: fixed;
+            bottom: calc(1rem + env(safe-area-inset-bottom));
+            right: calc(1rem + env(safe-area-inset-right));
+            z-index: 1000;
+        }
+
+        .fab-main {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--secondary-color), #E64A19);
+            color: white;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: var(--shadow-heavy);
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .fab-main:hover {
+            transform: scale(1.1);
+        }
+
+        .fab-menu {
+            position: absolute;
+            bottom: 70px;
+            right: 0;
+            display: none;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .fab-menu.active {
+            display: flex;
+            animation: slideUp 0.3s ease;
+        }
+
+        .fab-option {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--surface-color);
+            color: var(--text-primary);
+            padding: 0.75rem 1rem;
+            border-radius: 25px;
+            border: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            box-shadow: var(--shadow-medium);
+            transition: var(--transition);
+            white-space: nowrap;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        .fab-option:hover {
+            transform: translateX(-4px);
+            box-shadow: var(--shadow-heavy);
+        }
+
+        /* Notificaciones mejoradas */
+        .notification {
+            position: fixed;
+            top: calc(1rem + env(safe-area-inset-top));
+            left: 1rem;
+            right: 1rem;
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 1rem 1.5rem;
+            border-radius: var(--border-radius);
+            color: white;
+            font-weight: 500;
+            z-index: 10000;
+            box-shadow: var(--shadow-heavy);
+            transform: translateY(-100px);
+            opacity: 0;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .notification.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .notification.success {
+            background: linear-gradient(135deg, var(--success-color), #388E3C);
+        }
+
+        .notification.error {
+            background: linear-gradient(135deg, var(--error-color), #D32F2F);
+        }
+
+        .notification.warning {
+            background: linear-gradient(135deg, var(--warning-color), #F57C00);
+        }
+
+        .notification.info {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+        }
+
+        .notification-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+            margin-left: auto;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+        }
+
+        .notification-close:hover {
+            opacity: 1;
+        }
+
+        /* Modales mejorados */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 10000;
+            backdrop-filter: blur(4px);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 1;
+        }
+
+        .modal-content {
+            background: var(--surface-color);
+            border-radius: var(--border-radius);
+            max-width: 90vw;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+            box-shadow: var(--shadow-heavy);
+        }
+
+        .modal.show .modal-content {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .modal-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+        }
+
+        /* Botones mejorados */
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            min-height: 44px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            color: white;
+        }
+
+        .btn-secondary {
+            background: var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--success-color), #388E3C);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-medium);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            padding: 0;
+        }
+
+        /* Loading spinner mejorado */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,255,255,0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10001;
+            backdrop-filter: blur(4px);
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--border-color);
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        /* Responsive design mejorado */
+        @media (max-width: 768px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .eye-examination {
+                grid-template-columns: 1fr;
+            }
+
+            .header-content {
+                text-align: center;
+            }
+
+            .content {
+                padding: 1rem;
+            }
+        }
+
+        /* Print styles mejorados */
+        @media print {
+            body {
+                background: white;
+                color: black;
+            }
+            
+            .tabs-container,
+            .fab-container,
+            .header-controls,
+            .modal,
+            .notification {
+                display: none !important;
+            }
+            
+            .section {
+                display: block !important;
+                opacity: 1 !important;
+                transform: none !important;
+                page-break-after: always;
+            }
+            
+            .section:last-child {
+                page-break-after: avoid;
+            }
+        }
+
+        /* Utilidades */
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .mb-1 { margin-bottom: 0.5rem; }
+        .mb-2 { margin-bottom: 1rem; }
+        .mb-3 { margin-bottom: 1.5rem; }
+        .mt-1 { margin-top: 0.5rem; }
+        .mt-2 { margin-top: 1rem; }
+        .mt-3 { margin-top: 1.5rem; }
+        .hidden { display: none; }
+        .flex { display: flex; }
+        .items-center { align-items: center; }
+        .justify-between { justify-content: space-between; }
+        .gap-1 { gap: 0.5rem; }
+        .gap-2 { gap: 1rem; }
+    </style>
+</head>
+
+<body>
+    <!-- Contenedor principal -->
+    <div class="container">
+        <!-- Header mejorado -->
+        <header class="header">
+            <div class="header-content">
+                <div class="clinic-info">
+                    <h1>🏥 Sistema Avanzado de Expediente Oftalmológico</h1>
+                    <p class="clinic-subtitle">OFTÁLMICA UNIDAD DE CIRUGÍA RECONSTRUCTIVA</p>
+                </div>
+                <div class="header-controls">
+                    <button class="header-btn" onclick="cambiarTema()">🌓 Tema</button>
+                    <button class="header-btn" onclick="abrirConfiguracion()">⚙️ Config</button>
+                    <button class="header-btn" onclick="abrirAyuda()">❓ Ayuda</button>
+                </div>
+            </div>
+            <div class="progress-container">
+                <div class="progress-bar" id="barraProgreso"></div>
+            </div>
+        </header>
+
+        <!-- Navegación por pestañas -->
+        <div class="tabs-container">
+            <div class="tabs">
+                <button class="tab active" onclick="mostrarSeccion('identificacion')">
+                    📋 Identificación
+                </button>
+                <button class="tab" onclick="mostrarSeccion('antecedentes')">
+                    🧬 Antecedentes
+                </button>
+                <button class="tab" onclick="mostrarSeccion('exploracion')">
+                    👁️ Exploración
+                </button>
+                <button class="tab" onclick="mostrarSeccion('procedimiento')">
+                    ⚕️ Procedimiento
+                </button>
+                <button class="tab" onclick="mostrarSeccion('anestesia')">
+                    💉 Anestesia
+                </button>
+                <button class="tab" onclick="mostrarSeccion('seguimiento')">
+                    📈 Seguimiento
+                </button>
+                <button class="tab" onclick="mostrarSeccion('egreso')">
+                    🏠 Egreso
+                </button>
+            </div>
+        </div>
+
+        <!-- Contenido principal -->
+        <main class="content">
+            <!-- SECCIÓN 1: IDENTIFICACIÓN -->
+            <section class="section active" id="identificacion">
+                <h2 class="text-center mb-3">📋 Identificación del Paciente</h2>
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <h3>👤 Datos Personales</h3>
+                        <div class="form-row">
+                            <div class="input-group">
+                                <label for="expediente" class="required">Expediente No.</label>
+                                <input type="text" id="expediente" name="expediente" 
+                                       placeholder="EXP-2025-0001" autocomplete="off">
+                            </div>
+                            <div class="input-group">
+                                <label for="fecha_apertura" class="required">Fecha de Apertura</label>
+                                <input type="date" id="fecha_apertura" name="fecha_apertura">
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="input-group">
+                                <label for="nombres" class="required">Nombre(s)</label>
+                                <input type="text" id="nombres" name="nombres" 
+                                       placeholder="Nombre completo" autocomplete="given-name">
+                            </div>
+                            <div class="input-group">
+                                <label for="apellido_paterno" class="required">Apellido Paterno</label>
+                                <input type="text" id="apellido_paterno" name="apellido_paterno" 
+                                       placeholder="Apellido paterno" autocomplete="family-name">
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="input-group">
+                                <label for="apellido_materno">Apellido Materno</label>
+                                <input type="text" id="apellido_materno" name="apellido_materno" 
+                                       placeholder="Apellido materno" autocomplete="family-name">
+                            </div>
+                            <div class="input-group">
+                                <label for="fecha_nacimiento" class="required">Fecha de Nacimiento</label>
+                                <input type="date" id="fecha_nacimiento" name="fecha_nacimiento" 
+                                       autocomplete="bday" onchange="calcularEdad()">
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="input-group">
+                                <label for="edad">Edad</label>
+                                <input type="number" id="edad" name="edad" placeholder="Años" readonly>
+                            </div>
+                            <div class="input-group">
+                                <label for="sexo" class="required">Sexo</label>
+                                <select id="sexo" name="sexo" autocomplete="sex">
+                                    <option value="">Seleccionar</option>
+                                    <option value="M">Masculino</option>
+                                    <option value="F">Femenino</option>
+                                    <option value="O">Otro</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <h3>🏠 Información de Contacto</h3>
+                        <div class="form-row">
+                            <div class="input-group">
+                                <label for="curp">CURP</label>
+                                <input type="text" id="curp" name="curp" 
+                                       placeholder="CURP completa" 
+                                       pattern="[A-Z]{4}[0-9]{6}[HM][A-Z]{5}[0-9]{2}"
+                                       autocomplete="off">
+                            </div>
+                            <div class="input-group">
+                                <label for="telefono" class="required">Teléfono Principal</label>
+                                <input type="tel" id="telefono" name="telefono" 
+                                       placeholder="(951) 123-4567" autocomplete="tel">
+                            </div>
+                        </div>
+                        
+                        <div class="input-group">
+                            <label for="email">Email</label>
+                            <input type="email" id="email" name="email" 
+                                   placeholder="correo@ejemplo.com" autocomplete="email">
+                        </div>
+                        
+                        <div class="input-group">
+                            <label for="domicilio">Domicilio Completo</label>
+                            <textarea id="domicilio" name="domicilio" 
+                                      placeholder="Calle, número, colonia, ciudad, estado, CP"
+                                      autocomplete="street-address"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Calculadora de IMC -->
+                    <div class="form-group">
+                        <h3>📊 Datos Antropométricos</h3>
+                        <div class="form-row">
+                            <div class="input-group">
+                                <label for="peso">Peso (kg)</label>
+                                <input type="number" id="peso" name="peso" 
+                                       placeholder="70" min="0" max="300" step="0.1" onchange="calcularIMC()">
+                            </div>
+                            <div class="input-group">
+                                <label for="talla">Talla (cm)</label>
+                                <input type="number" id="talla" name="talla" 
+                                       placeholder="170" min="50" max="250" step="0.1" onchange="calcularIMC()">
+                            </div>
+                        </div>
+                        <div class="medical-calculator" id="calculadoraIMC" style="display: none;">
+                            <h4>Índice de Masa Corporal (IMC)</h4>
+                            <div class="calculator-result" id="resultadoIMC"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECCIÓN 2: ANTECEDENTES -->
+            <section class="section" id="antecedentes">
+                <h2 class="text-center mb-3">🧬 Antecedentes Médicos</h2>
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <h3>👨‍👩‍👧‍👦 Antecedentes Heredofamiliares</h3>
+                        <div class="form-row">
+                            <div class="input-group">
+                                <label for="diabetes_familiar">Diabetes Mellitus</label>
+                                <select id="diabetes_familiar" name="diabetes_familiar">
+                                    <option value="">No</option>
+                                    <option value="padre">Padre</option>
+                                    <option value="madre">Madre</option>
+                                    <option value="hermanos">Hermanos</option>
+                                    <option value="abuelos">Abuelos</option>
+                                    <option value="otros">Otros</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label for="hipertension_familiar">Hipertensión Arterial</label>
+                                <select id="hipertension_familiar" name="hipertension_familiar">
+                                    <option value="">No</option>
+                                    <option value="padre">Padre</option>
+                                    <option value="madre">Madre</option>
+                                    <option value="hermanos">Hermanos</option>
+                                    <option value="abuelos">Abuelos</option>
+                                    <option value="otros">Otros</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="input-group">
+                                <label for="glaucoma_familiar">Glaucoma</label>
+                                <select id="glaucoma_familiar" name="glaucoma_familiar">
+                                    <option value="">No</option>
+                                    <option value="si">Sí</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label for="degeneracion_familiar">Degeneración Macular</label>
+                                <select id="degeneracion_familiar" name="degeneracion_familiar">
+                                    <option value="">No</option>
+                                    <option value="si">Sí</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <h3>🏥 Antecedentes Personales Patológicos</h3>
+                        <div class="form-row">
+                            <div class="input-group">
+                                <label for="diabetes_personal">Diabetes Mellitus</label>
+                                <select id="diabetes_personal" name="diabetes_personal">
+                                    <option value="">No</option>
+                                    <option value="tipo1">Tipo 1</option>
+                                    <option value="tipo2">Tipo 2</option>
+                                    <option value="gestacional">Gestacional</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label for="anos_diabetes">Años de Evolución</label>
+                                <input type="number" id="anos_diabetes" name="anos_diabetes" 
+                                       placeholder="Años" min="0" max="100">
+                            </div>
+                        </div>
+                        
+                        <div class="input-group">
+                            <label for="alergias">Alergias</label>
+                            <textarea id="alergias" name="alergias" 
+                                      placeholder="Medicamentos, alimentos, materiales..."></textarea>
+                        </div>
+                        
+                        <div class="input-group">
+                            <label for="medicamentos">Medicamentos Actuales</label>
+                            <textarea id="medicamentos" name="medicamentos" 
+                                      placeholder="Nombre - Dosis - Frecuencia"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <h3>👁️ Antecedentes Oftalmológicos</h3>
+                        <div class="form-row">
+                            <div class="input-group">
+                                <label for="uso_lentes">Uso de Lentes</label>
+                                <select id="uso_lentes" name="uso_lentes">
+                                    <option value="">No</option>
+                                    <option value="armazon">Armazón</option>
+                                    <option value="contacto">Contacto</option>
+                                    <option value="ambos">Ambos</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label for="tiempo_lentes">Tiempo de Uso (años)</label>
+                                <input type="number" id="tiempo_lentes" name="tiempo_lentes" 
+                                       placeholder="Años" min="0" max="100">
+                            </div>
+                        </div>
+                        
+                        <div class="input-group">
+                            <label for="cirugias_previas">Cirugías Oculares Previas</label>
+                            <textarea id="cirugias_previas" name="cirugias_previas" 
+                                      placeholder="Describir cirugías previas por ojo"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECCIÓN 3: EXPLORACIÓN -->
+            <section class="section" id="exploracion">
+                <h2 class="text-center mb-3">👁️ Exploración Física Oftalmológica</h2>
+                
+                <!-- Diagramas oculares interactivos -->
+                <div class="eye-examination">
+                    <div class="eye-card">
+                        <h4>👁️ OJO DERECHO (OD)</h4>
+                        <div class="eye-visual" onclick="mostrarDetalleOjo('OD')"></div>
+                        <div class="form-row">
+                            <div class="input-group">
+                                <label for="av_od">AV s/c</label>
+                                <input type="text" id="av_od" name="av_od" 
+                                       placeholder="20/20, CD, MM, PL, NPL">
+                            </div>
+                            <div class="input-group">
+                                <label for="pio_od">PIO (mmHg)</label>
+                                <input type="number" id="pio_od" name="pio_od" 
+                                       placeholder="15" min="0" max="80" step="0.1">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="eye-card">
+                        <h4>👁️ OJO IZQUIERDO (OI)</h4>
+                        <div class="eye-visual" onclick="mostrarDetalleOjo('OI')"></div>
+                        <div class="form-row">
+                            <div class="input-group">
+                                <label for="av_oi">AV s/c</label>
+                                <input type="text" id="av_oi" name="av_oi" 
+                                       placeholder="20/20, CD, MM, PL, NPL">
+                            </div>
+                            <div class="input-group">
+                                <label for="pio_oi">PIO (mmHg)</label>
+                                <input type="number" id="pio_oi" name="pio_oi" 
+                                       placeholder="15" min="0" max="80" step="0.1">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <h3>🔬 Biomicroscopía</h3>
+                        <div class="form-row">
+                            <div class="input-group">
+                                <label for="parpados">Párpados</label>
+                                <textarea id="parpados" name="parpados" 
+                                          placeholder="OD: Normal | OI: Normal"></textarea>
+                            </div>
+                            <div class="input-group">
+                                <label for="conjuntiva">Conjuntiva</label>
+                                <textarea id="conjuntiva" name="conjuntiva" 
+                                          placeholder="OD: Normal | OI: Normal"></textarea>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="input-group">
+                                <label for="cornea">Córnea</label>
+                                <textarea id="cornea" name="cornea" 
+                                          placeholder="OD: Transparente | OI: Transparente"></textarea>
+                            </div>
+                            <div class="input-group">
+                                <label for="cristalino">Cristalino</label>
+                                <textarea id="cristalino" name="cristalino" 
+                                          placeholder="OD: Transparente | OI: Transparente"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <h3>🔍 Fondo de Ojo</h3>
+                        <div class="form-row">
+                            <div class="input-group">
+                                <label for="papila">Papila</label>
+                                <textarea id="papila" name="papila" 
+                                          placeholder="OD: Normal | OI: Normal"></textarea>
+                            </div>
+                            <div class="input-group">
+                                <label for="macula">Mácula</label>
+                                <textarea id="macula" name="macula" 
+                                          placeholder="OD: Normal | OI: Normal"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <h3>🩺 Padecimiento Actual</h3>
+                        <div class="input-group">
+                            <label for="motivo_consulta" class="required">Motivo de Consulta</label>
+                            <textarea id="motivo_consulta" name="motivo_consulta" 
+                                      placeholder="Síntomas y molestias actuales del paciente"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECCIÓN 4: PROCEDIMIENTO -->
+            <section class="section" id="procedimiento">
+                <h2 class="text-center mb-3">⚕️ Procedimiento Quirúrgico</h2>
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <h3>📋 Diagnóstico</h3>
+                        <div class="input-group">
+                            <label for="diagnostico_principal" class="required">Diagnóstico Principal</label>
+                            <input type="text" id="diagnostico_principal" name="diagnostico_principal" 
+                                   placeholder="Diagnóstico principal según CIE-10">
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="input-group">
+                                <label for="codigo_cie10">Código CIE-10</label>
+                                <input type="text" id="codigo_cie10" name="codigo_cie10" 
+                                       placeholder="H25.9" pattern="[A-Z][0-9]{2}\.[0-9]">
+                            </div>
+                            <div class="input-group">
+                                <label for="fecha_diagnostico">Fecha de Diagnóstico</label>
+                                <input type="date" id="fecha_diagnostico" name="fecha_diagnostico">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <h3>🔧 Procedimiento Planificado</h3>
+                        <div class="form-row">
+                            <div class="input-group">
+                                <label for="tipo_cirugia" class="required">Tipo de Cirugía</label>
+                                <select id="tipo_cirugia" name="tipo_cirugia">
+                                    <option value="">Seleccionar procedimiento</option>
+                                    <option value="facoemulsificacion">Facoemulsificación + LIO</option>
+                                    <option value="lasik">LASIK</option>
+                                    <option value="prk">PRK</option>
+                                    <option value="smile">SMILE</option>
+                                    <option value="vitrectomia">Vitrectomía</option>
+                                    <option value="trabeculectomia">Trabeculectomía</option>
+                                    <option value="implante_ahmed">Implante Válvula Ahmed</option>
+                                    <option value="blefaroplastia">Blefaroplastia</option>
+                                    <option value="otro">Otro</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label for="ojo_intervencion" class="required">Ojo a Intervenir</label>
+                                <select id="ojo_intervencion" name="ojo_intervencion">
+                                    <option value="">Seleccionar</option>
+                                    <option value="OD">OD (Derecho)</option>
+                                    <option value="OI">OI (Izquierdo)</option>
+                                    <option value="AO">AO (Ambos)</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="input-group">
+                            <label for="fecha_cirugia">Fecha Programada</label>
+                            <input type="date" id="fecha_cirugia" name="fecha_cirugia">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <h3>📄 Consentimiento Informado</h3>
+                        <div class="form-row">
+                            <div class="input-group">
+                                <label for="consentimiento" class="required">Consentimiento Firmado</label>
+                                <select id="consentimiento" name="consentimiento">
+                                    <option value="">Seleccionar</option>
+                                    <option value="si">Sí</option>
+                                    <option value="no">No</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label for="fecha_consentimiento">Fecha de Firma</label>
+                                <input type="date" id="fecha_consentimiento" name="fecha_consentimiento">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECCIÓN 5: ANESTESIA -->
+            <section class="section" id="anestesia">
+                <h2 class="text-center mb-3">💉 Notas Anestésicas</h2>
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <h3>🩺 Evaluación Preanestésica</h3>
+                        <div class="form-row">
+                            <div class="input-group">
+                                <label for="clasificacion_asa">Clasificación ASA</label>
+                                <select id="clasificacion_asa" name="clasificacion_asa">
+                                    <option value="">Seleccionar</option>
+                                    <option value="ASA I">ASA I - Paciente sano normal</option>
+                                    <option value="ASA II">ASA II - Enfermedad sistémica leve</option>
+                                    <option value="ASA III">ASA III - Enfermedad sistémica grave</option>
+                                    <option value="ASA IV">ASA IV - Enfermedad sistémica grave, amenaza vital</option>
+                                    <option value="ASA V">ASA V - Paciente moribundo</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label for="tipo_anestesia">Tipo de Anestesia</label>
+                                <select id="tipo_anestesia" name="tipo_anestesia">
+                                    <option value="">Seleccionar</option>
+                                    <option value="topica">Tópica</option>
+                                    <option value="local">Local</option>
+                                    <option value="regional">Regional</option>
+                                    <option value="general">General</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <h3>💊 Medicamentos Administrados</h3>
+                        <div class="input-group">
+                            <label for="medicamentos_anestesia">Medicamentos y Dosis</label>
+                            <textarea id="medicamentos_anestesia" name="medicamentos_anestesia" 
+                                      placeholder="Medicamento - Dosis - Vía - Hora"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECCIÓN 6: SEGUIMIENTO -->
+            <section class="section" id="seguimiento">
+                <h2 class="text-center mb-3">📈 Seguimiento Postoperatorio</h2>
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <h3>📅 Control Postoperatorio</h3>
+                        <div class="form-row">
+                            <div class="input-group">
+                                <label for="fecha_control">Fecha de Control</label>
+                                <input type="date" id="fecha_control" name="fecha_control">
+                            </div>
+                            <div class="input-group">
+                                <label for="medico_control">Médico</label>
+                                <input type="text" id="medico_control" name="medico_control" 
+                                       placeholder="Nombre del médico">
+                            </div>
+                        </div>
+                        
+                        <div class="input-group">
+                            <label for="nota_evolucion">Nota de Evolución</label>
+                            <textarea id="nota_evolucion" name="nota_evolucion" 
+                                      placeholder="Evolución del paciente, hallazgos, plan..."></textarea>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECCIÓN 7: EGRESO -->
+            <section class="section" id="egreso">
+                <h2 class="text-center mb-3">🏠 Nota de Egreso</h2>
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <h3>📅 Datos del Egreso</h3>
+                        <div class="form-row">
+                            <div class="input-group">
+                                <label for="fecha_egreso">Fecha de Egreso</label>
+                                <input type="date" id="fecha_egreso" name="fecha_egreso">
+                            </div>
+                            <div class="input-group">
+                                <label for="condicion_egreso">Condición al Egreso</label>
+                                <select id="condicion_egreso" name="condicion_egreso">
+                                    <option value="">Seleccionar</option>
+                                    <option value="estable">Estable</option>
+                                    <option value="mejorado">Mejorado</option>
+                                    <option value="delicado">Delicado</option>
+                                    <option value="grave">Grave</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="input-group">
+                            <label for="pronostico">Pronóstico</label>
+                            <select id="pronostico" name="pronostico">
+                                <option value="">Seleccionar</option>
+                                <option value="excelente">Excelente</option>
+                                <option value="bueno">Bueno</option>
+                                <option value="regular">Regular</option>
+                                <option value="reservado">Reservado</option>
+                                <option value="malo">Malo</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <h3>💊 Tratamiento al Egreso</h3>
+                        <div class="input-group">
+                            <label for="medicamentos_egreso">Medicamentos Prescritos</label>
+                            <textarea id="medicamentos_egreso" name="medicamentos_egreso" 
+                                      placeholder="Medicamento - Dosis - Frecuencia - Duración"></textarea>
+                        </div>
+                        
+                        <div class="input-group">
+                            <label for="cuidados_casa">Cuidados en Casa</label>
+                            <textarea id="cuidados_casa" name="cuidados_casa" 
+                                      placeholder="Instrucciones específicas para el hogar"></textarea>
+                        </div>
+                        
+                        <div class="input-group">
+                            <label for="signos_alarma">Signos de Alarma</label>
+                            <textarea id="signos_alarma" name="signos_alarma" 
+                                      placeholder="Síntomas por los cuales debe regresar inmediatamente"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Botón de acción flotante -->
+    <div class="fab-container">
+        <button class="fab-main" id="botonFab" onclick="alternarMenuFab()">
+            <span id="iconoFab">⚡</span>
+        </button>
+        <div class="fab-menu" id="menuFab">
+            <button class="fab-option" onclick="guardarFormulario()">
+                💾 Guardar
+            </button>
+            <button class="fab-option" onclick="generarPDF()">
+                📄 PDF
+            </button>
+            <button class="fab-option" onclick="compartirFormulario()">
+                📤 Compartir
+            </button>
+            <button class="fab-option" onclick="imprimirFormulario()">
+                🖨️ Imprimir
+            </button>
+            <button class="fab-option" onclick="mostrarEstadisticas()">
+                📊 Estadísticas
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal de configuración -->
+    <div class="modal" id="modalConfiguracion">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>⚙️ Configuración</h3>
+                <button class="btn btn-icon" onclick="cerrarModal('modalConfiguracion')">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <h4>🎨 Personalización</h4>
+                    <div class="form-row">
+                        <div class="input-group">
+                            <label for="autoGuardado">Auto-guardado</label>
+                            <select id="autoGuardado">
+                                <option value="30">30 segundos</option>
+                                <option value="60" selected>1 minuto</option>
+                                <option value="300">5 minutos</option>
+                                <option value="0">Desactivado</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="nivelValidacion">Nivel de validación</label>
+                            <select id="nivelValidacion">
+                                <option value="basic">Básico</option>
+                                <option value="intermediate" selected>Intermedio</option>
+                                <option value="strict">Estricto</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="cerrarModal('modalConfiguracion')">Cancelar</button>
+                <button class="btn btn-primary" onclick="guardarConfiguracion()">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de ayuda -->
+    <div class="modal" id="modalAyuda">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>❓ Ayuda del Sistema</h3>
+                <button class="btn btn-icon" onclick="cerrarModal('modalAyuda')">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <h4>🚀 Inicio Rápido</h4>
+                    <p>1. Complete los campos obligatorios marcados con asterisco (*)</p>
+                    <p>2. Use las pestañas superiores para navegar entre secciones</p>
+                    <p>3. El sistema guarda automáticamente cada minuto</p>
+                    <p>4. Use el botón flotante ⚡ para acciones rápidas</p>
+                </div>
+                
+                <div class="form-group">
+                    <h4>⌨️ Atajos de Teclado</h4>
+                    <p><kbd>Ctrl + S</kbd> - Guardar</p>
+                    <p><kbd>Ctrl + P</kbd> - Imprimir</p>
+                    <p><kbd>Esc</kbd> - Cerrar modal</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="cerrarModal('modalAyuda')">Entendido</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading overlay -->
+    <div class="loading-overlay" id="pantallaCarga" style="display: none;">
+        <div style="text-align: center; color: var(--text-primary);">
+            <div class="loading-spinner"></div>
+            <p style="margin-top: 1rem;">Procesando...</p>
+        </div>
+    </div>
+
+    <!-- JavaScript simplificado y funcional -->
+    <script>
+        // Variables globales
+        let menuFabAbierto = false;
+        let temaOscuro = false;
+
+        // Funciones básicas de UI
+        function mostrarSeccion(sectionId) {
+            console.log('Mostrando sección:', sectionId);
+            
+            // Ocultar todas las secciones
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // Mostrar la sección seleccionada
+            const seccionSeleccionada = document.getElementById(sectionId);
+            if (seccionSeleccionada) {
+                seccionSeleccionada.classList.add('active');
+            }
+            
+            // Actualizar pestañas
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Encontrar y activar la pestaña correspondiente
+            const pestanaCorrespondiente = document.querySelector(`[onclick="mostrarSeccion('${sectionId}')"]`);
+            if (pestanaCorrespondiente) {
+                pestanaCorrespondiente.classList.add('active');
+            }
+            
+            // Scroll suave al top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            
+            // Feedback háptico en móvil
+            if (navigator.vibrate) {
+                navigator.vibrate(50);
+            }
+        }
+
+        // Funciones del header
+        function cambiarTema() {
+            console.log('Cambiando tema');
+            temaOscuro = !temaOscuro;
+            document.documentElement.setAttribute('data-theme', temaOscuro ? 'dark' : 'light');
+            localStorage.setItem('temaPreferencia', temaOscuro ? 'dark' : 'light');
+            mostrarNotificacion(`Tema ${temaOscuro ? 'oscuro' : 'claro'} activado`, 'info');
+        }
+
+        function abrirConfiguracion() {
+            console.log('Abriendo configuración');
+            mostrarModal('modalConfiguracion');
+        }
+
+        function abrirAyuda() {
+            console.log('Abriendo ayuda');
+            mostrarModal('modalAyuda');
+        }
+
+        // Funciones del FAB
+        function alternarMenuFab() {
+            console.log('Alternando menú FAB');
+            menuFabAbierto = !menuFabAbierto;
+            
+            const menuFab = document.getElementById('menuFab');
+            const iconoFab = document.getElementById('iconoFab');
+            
+            if (menuFab && iconoFab) {
+                menuFab.classList.toggle('active', menuFabAbierto);
+                iconoFab.textContent = menuFabAbierto ? '✕' : '⚡';
+                
+                if (navigator.vibrate) {
+                    navigator.vibrate(30);
+                }
+            }
+        }
+
+        function guardarFormulario() {
+            console.log('Guardando formulario');
+            
+            try {
+                const datos = {};
+                document.querySelectorAll('input, select, textarea').forEach(elemento => {
+                    if (elemento.name) {
+                        datos[elemento.name] = elemento.value;
+                    }
+                });
+
+                localStorage.setItem('expedienteData', JSON.stringify(datos));
+                localStorage.setItem('expedienteTimestamp', new Date().toISOString());
+                
+                mostrarNotificacion('Expediente guardado correctamente', 'success');
+                
+                if (navigator.vibrate) {
+                    navigator.vibrate([50, 30, 50]);
+                }
+                
+                alternarMenuFab();
+            } catch (error) {
+                console.error('Error guardando:', error);
+                mostrarNotificacion('Error al guardar: ' + error.message, 'error');
+            }
+        }
+
+        function generarPDF() {
+            console.log('Generando PDF');
+            
+            mostrarPantallaCarga();
+            mostrarNotificacion('Preparando PDF...', 'info');
+            
+            setTimeout(() => {
+                ocultarPantallaCarga();
+                
+                const nombrePaciente = obtenerNombrePaciente();
+                const timestamp = new Date().toISOString().split('T')[0];
+                const nombreArchivo = `expediente_${nombrePaciente || 'paciente'}_${timestamp}.pdf`;
+                
+                mostrarNotificacion(`PDF "${nombreArchivo}" preparado - presione OK para vista de impresión`, 'success');
+                
+                setTimeout(() => {
+                    if (confirm('¿Desea abrir la vista de impresión del navegador?')) {
+                        window.print();
+                    }
+                }, 2000);
+            }, 1500);
+            
+            alternarMenuFab();
+        }
+
+        function compartirFormulario() {
+            console.log('Compartiendo formulario');
+            
+            const nombrePaciente = obtenerNombrePaciente();
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: '🏥 Expediente Clínico Oftalmológico',
+                    text: `Expediente clínico de ${nombrePaciente || 'paciente'} - Sistema Avanzado`,
+                    url: window.location.href
+                }).then(() => {
+                    mostrarNotificacion('Compartido exitosamente', 'success');
+                }).catch((error) => {
+                    if (error.name !== 'AbortError') {
+                        compartirFallback();
+                    }
+                });
+            } else {
+                compartirFallback();
+            }
+            
+            alternarMenuFab();
+        }
+
+        function compartirFallback() {
+            navigator.clipboard.writeText(window.location.href).then(() => {
+                mostrarNotificacion('Enlace copiado al portapapeles para compartir', 'success');
+            }).catch(() => {
+                mostrarNotificacion('Use el menú de su navegador para compartir esta página', 'info');
+            });
+        }
+
+        function imprimirFormulario() {
+            console.log('Imprimiendo formulario');
+            
+            mostrarNotificacion('Abriendo vista de impresión...', 'info');
+            
+            setTimeout(() => {
+                window.print();
+            }, 800);
+            
+            alternarMenuFab();
+        }
+
+        function mostrarEstadisticas() {
+            console.log('Mostrando estadísticas');
+            
+            const totalCampos = document.querySelectorAll('input, select, textarea').length;
+            const camposLlenos = Array.from(document.querySelectorAll('input, select, textarea'))
+                .filter(campo => campo.value && campo.value.trim() !== '').length;
+            const porcentajeCompletitud = totalCampos > 0 ? ((camposLlenos / totalCampos) * 100).toFixed(1) : 0;
+            
+            const mensaje = `📊 Estadísticas del Expediente:\n\n` +
+                          `Campos completados: ${camposLlenos}/${totalCampos}\n` +
+                          `Progreso: ${porcentajeCompletitud}%\n` +
+                          `Última actualización: ${new Date().toLocaleString()}`;
+            
+            alert(mensaje);
+            alternarMenuFab();
+        }
+
+        // Funciones de modal
+        function mostrarModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.add('show');
+            }
+        }
+
+        function cerrarModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.remove('show');
+            }
+        }
+
+        function guardarConfiguracion() {
+            const autoGuardado = document.getElementById('autoGuardado').value;
+            const nivelValidacion = document.getElementById('nivelValidacion').value;
+            
+            localStorage.setItem('expedienteConfiguracion', JSON.stringify({
+                autoGuardado,
+                nivelValidacion
+            }));
+            
+            mostrarNotificacion('Configuración guardada', 'success');
+            cerrarModal('modalConfiguracion');
+        }
+
+        // Funciones de utilidad
+        function calcularEdad() {
+            const fechaNacimiento = new Date(document.getElementById('fecha_nacimiento').value);
+            const hoy = new Date();
+            
+            let edad = hoy.getFullYear() - fechaNacimiento.getFullYear();
+            const diferenciaMes = hoy.getMonth() - fechaNacimiento.getMonth();
+            
+            if (diferenciaMes < 0 || (diferenciaMes === 0 && hoy.getDate() < fechaNacimiento.getDate())) {
+                edad--;
+            }
+            
+            if (edad >= 0 && edad <= 120) {
+                document.getElementById('edad').value = edad;
+                mostrarNotificacion(`Edad calculada: ${edad} años`, 'success');
+            }
+        }
+
+        function calcularIMC() {
+            const peso = parseFloat(document.getElementById('peso').value);
+            const talla = parseFloat(document.getElementById('talla').value);
+            
+            if (peso && talla) {
+                const tallam = talla / 100;
+                const imc = peso / (tallam * tallam);
+                
+                let categoria = '';
+                if (imc < 18.5) categoria = 'Bajo peso';
+                else if (imc < 25) categoria = 'Normal';
+                else if (imc < 30) categoria = 'Sobrepeso';
+                else categoria = 'Obesidad';
+                
+                const calculadoraIMC = document.getElementById('calculadoraIMC');
+                const resultadoIMC = document.getElementById('resultadoIMC');
+                
+                if (calculadoraIMC && resultadoIMC) {
+                    resultadoIMC.innerHTML = `
+                        <strong>IMC: ${imc.toFixed(1)} kg/m²</strong><br>
+                        Categoría: ${categoria}
+                    `;
+                    calculadoraIMC.style.display = 'block';
+                }
+            }
+        }
+
+        function obtenerNombrePaciente() {
+            const nombres = document.getElementById('nombres')?.value || '';
+            const apellidoP = document.getElementById('apellido_paterno')?.value || '';
+            const apellidoM = document.getElementById('apellido_materno')?.value || '';
+            return `${nombres} ${apellidoP} ${apellidoM}`.trim().replace(/\s+/g, '_');
+        }
+
+        function mostrarDetalleOjo(ojo) {
+            alert(`Detalle del ${ojo === 'OD' ? 'Ojo Derecho' : 'Ojo Izquierdo'}\n\nEsta función se expandirá en futuras versiones.`);
+        }
+
+        function mostrarPantallaCarga() {
+            const pantalla = document.getElementById('pantallaCarga');
+            if (pantalla) {
+                pantalla.style.display = 'flex';
+            }
+        }
+
+        function ocultarPantallaCarga() {
+            const pantalla = document.getElementById('pantallaCarga');
+            if (pantalla) {
+                pantalla.style.display = 'none';
+            }
+        }
+
+        function mostrarNotificacion(mensaje, tipo = 'info') {
+            // Eliminar notificaciones existentes
+            document.querySelectorAll('.notification').forEach(notif => notif.remove());
+
+            const notificacion = document.createElement('div');
+            notificacion.className = `notification ${tipo}`;
+            
+            const iconos = {
+                success: '✅',
+                error: '❌',
+                warning: '⚠️',
+                info: 'ℹ️'
+            };
+
+            notificacion.innerHTML = `
+                <span>${iconos[tipo] || 'ℹ️'}</span>
+                <span>${mensaje}</span>
+                <button class="notification-close" onclick="this.parentElement.remove()">✕</button>
+            `;
+
+            document.body.appendChild(notificacion);
+            
+            // Mostrar con animación
+            setTimeout(() => notificacion.classList.add('show'), 100);
+            
+            // Auto-remover después de 5 segundos
+            setTimeout(() => {
+                if (notificacion.parentElement) {
+                    notificacion.classList.remove('show');
+                    setTimeout(() => notificacion.remove(), 300);
+                }
+            }, 5000);
+        }
+
+        // Cargar datos guardados
+        function cargarDatosGuardados() {
+            try {
+                const datosGuardados = localStorage.getItem('expedienteData');
+                if (datosGuardados) {
+                    const datos = JSON.parse(datosGuardados);
+                    Object.keys(datos).forEach(campo => {
+                        const elemento = document.querySelector(`[name="${campo}"]`);
+                        if (elemento) {
+                            elemento.value = datos[campo];
+                        }
+                    });
+                    
+                    const timestamp = localStorage.getItem('expedienteTimestamp');
+                    if (timestamp) {
+                        const fechaGuardado = new Date(timestamp).toLocaleString();
+                        mostrarNotificacion(`Datos cargados desde: ${fechaGuardado}`, 'info');
+                    }
+                }
+            } catch (error) {
+                console.error('Error cargando datos:', error);
+            }
+        }
+
+        // Cargar tema guardado
+        function cargarTemaGuardado() {
+            const temaGuardado = localStorage.getItem('temaPreferencia');
+            if (temaGuardado) {
+                temaOscuro = temaGuardado === 'dark';
+                document.documentElement.setAttribute('data-theme', temaGuardado);
+            }
+        }
+
+        // Auto-guardado
+        function iniciarAutoGuardado() {
+            setInterval(() => {
+                try {
+                    const datos = {};
+                    document.querySelectorAll('input, select, textarea').forEach(elemento => {
+                        if (elemento.name) {
+                            datos[elemento.name] = elemento.value;
+                        }
+                    });
+                    localStorage.setItem('expedienteAutoSave', JSON.stringify(datos));
+                    console.log('Auto-guardado realizado');
+                } catch (error) {
+                    console.error('Error en auto-guardado:', error);
+                }
+            }, 60000); // Cada minuto
+        }
+
+        // Manejo de eventos de teclado
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey || e.metaKey) {
+                switch(e.key) {
+                    case 's':
+                        e.preventDefault();
+                        guardarFormulario();
+                        break;
+                    case 'p':
+                        e.preventDefault();
+                        imprimirFormulario();
+                        break;
+                }
+            }
+            if (e.key === 'Escape') {
+                // Cerrar todos los modales
+                document.querySelectorAll('.modal').forEach(modal => {
+                    modal.classList.remove('show');
+                });
+                // Cerrar menú FAB
+                if (menuFabAbierto) {
+                    alternarMenuFab();
+                }
+            }
+        });
+
+        // Cerrar modales al hacer click fuera
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('modal')) {
+                e.target.classList.remove('show');
+            }
+        });
+
+        // Inicialización cuando el DOM esté listo
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Inicializando sistema...');
+            
+            // Configurar fecha actual por defecto
+            const fechaApertura = document.getElementById('fecha_apertura');
+            if (fechaApertura && !fechaApertura.value) {
+                fechaApertura.value = new Date().toISOString().split('T')[0];
+            }
+            
+            // Cargar configuraciones guardadas
+            cargarTemaGuardado();
+            cargarDatosGuardados();
+            
+            // Iniciar auto-guardado
+            iniciarAutoGuardado();
+            
+            // Mensaje de bienvenida
+            setTimeout(() => {
+                mostrarNotificacion('🎉 Sistema cargado correctamente. ¡Listo para usar!', 'success');
+            }, 1000);
+            
+            console.log('✅ Sistema inicializado correctamente');
+        });
+
+        // Función de debug para testing
+        function debug() {
+            console.log('=== DEBUG INFO ===');
+            console.log('FAB menu:', document.getElementById('menuFab'));
+            console.log('Menu abierto:', menuFabAbierto);
+            console.log('Tema oscuro:', temaOscuro);
+            console.log('Total campos:', document.querySelectorAll('input, select, textarea').length);
+            console.log('Campos llenos:', Array.from(document.querySelectorAll('input, select, textarea')).filter(f => f.value).length);
+            console.log('Sección activa:', document.querySelector('.section.active')?.id);
+            console.log('==================');
+        }
+
+        // Exponer función de debug globalmente
+        window.debug = debug;
+        
+        console.log('📋 Sistema de Expediente Oftalmológico cargado. Use debug() para información del sistema.');
+    </script>
+</body>
+</html>
